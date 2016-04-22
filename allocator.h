@@ -2,19 +2,20 @@
 
 #include <limits>
 #include <memory>
+#include <iostream>
 
-template<typename T>
+template<class T>
 class Allocator {
 public:
-	typedef T        value_type;
-	typedef T*       pointer;
-	typedef const T* const_pointer;
-	typedef T&       reference;
-	typedef const T& const_reference;
-	typedef std::size_t    size_type;
-	typedef std::ptrdiff_t difference_type;
+	typedef T                 value_type;
+	typedef std::size_t       size_type;
+	typedef std::ptrdiff_t    difference_type;
+	typedef       value_type* pointer;
+	typedef       value_type& reference;
+	typedef const value_type* const_pointer;
+	typedef const value_type& const_reference;
 	
-	template<typename U> 
+	template<class U> 
 	struct rebind { 
 		typedef Allocator<U> other; 
 	};
@@ -25,7 +26,7 @@ public:
 	Allocator(const Allocator&) {
 	}
 
-	template<typename U>
+	template<class U>
 	Allocator(const Allocator<U>&) {	
 	}
 
@@ -52,7 +53,7 @@ public:
 		return std::numeric_limits<size_type>::max() / sizeof(T);
 	}
 
-	template<typename U, typename... Args>
+	template<class U, class... Args>
 	void construct(U* p, Args&&... args) {
 		new((void *)p) U(std::forward<Args>(args)...);
 	}
@@ -63,12 +64,12 @@ public:
 	}
 };
 
-template <typename T1, typename T2>
+template <class T1, class T2>
 bool operator==(const Allocator<T1>&, const Allocator<T2>&) throw() {
 	return true;
 }
 
-template <typename T1, typename T2>
+template <class T1, class T2>
 bool operator!=(const Allocator<T1>&, const Allocator<T2>&) throw() {
 	return false;
 }
