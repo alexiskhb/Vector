@@ -28,6 +28,25 @@ public:
 		
 	}
 
+	Vector(size_type a_size) {
+		m_begin = m_end = m_memory_end = nullptr;
+		m_begin = allocate(2*a_size);
+		m_end = m_begin + a_size;
+		m_memory_end = m_begin + 2*a_size;
+		construct(m_begin, m_end, T());
+	}
+
+	Vector& operator=(const Vector& other) {
+
+	}
+
+	~Vector() {
+		destroy(begin(), end());
+		m_allocator.deallocate(begin(), capacity());
+	}
+
+// Iterators
+
 	iterator begin() {
 		return m_begin;
 	}
@@ -44,20 +63,14 @@ public:
 		return m_end;
 	}
 
-	reference operator[](size_type a_index) {
-		return *(m_begin + a_index);
-	}
-
-	const_reference operator[](size_type a_index) const {
-		return *(m_begin + a_index);
-	}
+// Capacity
 
 	size_type size() const {
-		return m_end - m_begin;
+		return end() - begin();
 	}
 
 	size_type capacity() const {
-		return m_memory_end - m_begin;
+		return m_memory_end - begin();
 	}
 
 	bool empty() const {
@@ -69,33 +82,61 @@ public:
 			return;
 		}
 		size_type old_size = size();
+		size_type old_capacity = capacity();
 		pointer old_begin = begin();
 		pointer new_begin = allocate(a_size);
 		copy(new_begin, old_begin, old_size);
 		destroy(old_begin, old_begin + old_size);
-		m_allocator.deallocate(old_begin, old_size);
+		m_allocator.deallocate(old_begin, old_capacity);
+		m_begin = new_begin;
+		m_end = new_begin + old_size;
+		m_memory_end = m_begin + a_size;
 	}
 
+	void resize(size_type a_size) {
+
+	}
+
+// Element access
+
+	reference front() {
+		return *begin();
+	}
+
+	const_reference front() const {
+		return *begin();
+	}
+
+	reference back() {
+		return *(end() - 1);
+	}
+
+	const_reference back() const {
+		return *(end() - 1);
+	}
+
+	reference operator[](size_type a_index) {
+		return *(begin() + a_index);
+	}
+
+	const_reference operator[](size_type a_index) const {
+		return *(begin() + a_index);
+	}
+
+// Modifiers
+
 	iterator insert(iterator a_position, const T& a_value) {
-		if (size() + 1 > capacity()) {
-			size_type index = a_position - begin();
-			iterator new_begin = allocate(2*capacity());
-			a_position = new_begin + index;
-		}
-		move(a_position + 1, a_position, m_end - a_position);
-		if (a_position != end()) {
-			destroy(a_position, a_position + 1);
-		}
+		rshift(a_position, 1);
 		construct(a_position, a_value);
-		m_end += 1;
+	}
+
+	template <class... Args>
+	iterator emplace(iterator a_position, Args&&... args) {
+		insert(a_position, T(args...));
 	}
 
 	void push_back(const T& a_value) {
 		insert(end(), a_value);
-	}
-
-	void push_front(const T& a_value) {
-		insert(begin(), a_value);
 	}
 
 	// [first, last}
@@ -109,6 +150,10 @@ public:
 		erase(a_position, a_position + 1);
 	}
 	
+	void pop_back() {
+		erase(end() - 1);
+	}
+
 private:
 	pointer m_begin;
 	pointer m_end;
@@ -116,11 +161,7 @@ private:
 	allocator_type m_allocator;
 
 	pointer allocate(size_type a_size) {
-		size_type old_size = size();
 		pointer new_begin = m_allocator.allocate(a_size);
-		m_begin = new_begin;
-		m_end = m_begin + old_size;
-		m_memory_end = m_begin + a_size;
 		return new_begin;
 	}
 
@@ -128,10 +169,15 @@ private:
 		m_allocator.construct(a_position, a_value);
 	}
 
+	void construct(const_iterator a_first, const_iterator a_last, const T& a_value) {
+		for(const_iterator i = a_first; i < a_last; i++) {
+			m_allocator.construct(i, a_value);
+		}
+	}
+
 	void destroy(const_iterator a_first, const_iterator a_last) {
-		for(const_iterator i = a_first; i != a_last; i++) {
+		for(const_iterator i = a_first; i < a_last; i++) {
 			m_allocator.destroy(i);
-			std::cout << i << std::endl;			
 		}
 	}
 
@@ -141,5 +187,27 @@ private:
 
 	void move(pointer a_to, pointer a_from, size_type a_size) {
 		std::memmove(a_to, a_from, sizeof(value_type)*a_size);
+	}
+
+	iterator rshift(iterator a_position, size_type a_count) {
+		size_type index = a_position - begin();
+		size_type old_size = size();
+		if (old_size + a_count <= capacity()) {
+			move(a_position + a_count, a_position, end() - a_position);
+			destroy(a_position, a_position + a_count - (a_position + a_count == end() + 1 ? 1 : 0));
+		}
+		else {
+			iterator old_begin = begin();
+			iterator old_end = end();
+			size_type old_capacity = capacity();
+			iterator new_begin = allocate(2*(old_size + a_count));
+			a_position = new_begin + index;
+			copy(new_begin, old_begin, index);
+			copy(a_position, old_begin + index, old_size - index);
+			destroy(old_begin, old_end);
+			m_allocator.deallocate(old_begin, old_capacity);
+		}
+		m_end = begin() + old_size + a_count;
+		return a_position;
 	}
 };
