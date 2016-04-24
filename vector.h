@@ -184,7 +184,7 @@ public:
 private:
 	template<class I>
 	struct is_iterator {
-		template <class U> static char check(class std::iterator_traits<U>::pointer* x);
+		template <class U> static char check(typename std::iterator_traits<U>::pointer* x);
 		template <class U> static long check(U* x);
 
 		static const bool value = sizeof(check<I>(nullptr)) == sizeof(char);
