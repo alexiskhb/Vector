@@ -10,7 +10,7 @@
 
 
 
-template<class T, class A = Allocator<T>>
+template<class T, class A = std::allocator<T>>
 class Vector {
 public:
 	typedef A allocator_type;
@@ -30,10 +30,16 @@ public:
 
 	Vector(size_type a_size) {
 		m_begin = m_end = m_memory_end = nullptr;
-		m_begin = allocate(2*a_size);
-		m_end = m_begin + a_size;
-		m_memory_end = m_begin + 2*a_size;
+		init_allocate_and_resize(a_size);
 		construct(m_begin, m_end, T());
+	}
+
+	Vector(std::initializer_list<value_type> il, const allocator_type& alloc = allocator_type()) {
+		m_begin = m_end = m_memory_end = nullptr;
+		init_allocate_and_resize(il.size());
+		for(const_iterator i = begin(), v = il.begin(); i < end(); i++, v++) {
+			construct(i, *v);
+		}
 	}
 
 	Vector& operator=(const Vector& other) {
@@ -126,13 +132,14 @@ public:
 // Modifiers
 
 	iterator insert(iterator a_position, const T& a_value) {
-		rshift(a_position, 1);
+		a_position = rshift(a_position, 1);
 		construct(a_position, a_value);
+		return a_position;
 	}
 
 	template <class... Args>
 	iterator emplace(iterator a_position, Args&&... args) {
-		insert(a_position, T(args...));
+		return insert(a_position, T(args...));
 	}
 
 	void push_back(const T& a_value) {
@@ -209,5 +216,11 @@ private:
 		}
 		m_end = begin() + old_size + a_count;
 		return a_position;
+	}
+
+	void init_allocate_and_resize(size_type a_size) {
+		m_begin = allocate(2*a_size);
+		m_end = m_begin + a_size;
+		m_memory_end = m_begin + 2*a_size;
 	}
 };
