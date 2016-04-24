@@ -3,39 +3,39 @@
 #include <vector>
 #include "vector.h"
 #include "allocator.h"
+#include <cstdlib>
+#include <memory>
 
-
-class Base {
+class Class {
 public:
-	Base() {
-	}
-
-	Base(int a) : val(a) {
-	}
-
-	Base(const Base& b) {
-		val = b.val;
-	}
-
-	~Base() {
-	}
-
-	int val;
-
-	int bar() {
-	}
+	int value;
+	Class()               : value(11)      {}
+	Class(int a)          : value(a)       {}
+	Class(int a, int b)   : value(a + b)   {}
+	Class(const Class& b) : value(b.value) {}
+	~Class() {}
 };
 
+class VectorTest        : public ::testing::Test {};
+class AllocatorTest     : public ::testing::Test {};
+class TestIterators     : public VectorTest {};
+class TestCapacity      : public VectorTest {};
+class TestElementAccess : public VectorTest {};
+class TestModifiers     : public VectorTest {};
 
-void foo() {
-	std::vector<Base, Allocator<Base>> vector;
-	vector.push_back(4);
-	std::cout << vector[0].val << std::endl;
+typedef Class TType;
+typedef Vector<TType>::iterator TIterator;
+typedef Vector<TType> TVector;
+
+TEST_F(TestIterators, BEGIN_END) {
+	const int SIZE = 25;
+	TVector Vec(SIZE);
+	TIterator begin = Vec.begin();
+	TIterator end   = Vec.end();
+	ASSERT_EQ(begin + SIZE, end);
 }
 
 int main(int argc, char** argv) {
-	foo();
-	// ::testing::InitGoogleTest(&argc, argv);
-	// return RUN_ALL_TESTS();
-	return 0;
+	::testing::InitGoogleTest(&argc, argv);
+	return RUN_ALL_TESTS();
 }
