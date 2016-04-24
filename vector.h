@@ -24,22 +24,42 @@ public:
 	typedef pointer       iterator;
 	typedef const_pointer const_iterator;
 
-	Vector() : m_begin(nullptr), m_end(nullptr), m_memory_end(nullptr) {
+private:
+	pointer m_memory_begin;
+	pointer m_end;
+	pointer m_memory_end;
+	allocator_type m_allocator;
+
+public:
+	Vector() : m_memory_begin(nullptr), m_end(nullptr), m_memory_end(nullptr) {
 		
 	}
 
 	Vector(size_type a_size) {
-		m_begin = m_end = m_memory_end = nullptr;
-		init_allocate_and_resize(a_size);
-		construct(m_begin, m_end, T());
+		init_allocate_and_set_size(a_size);
+		construct(m_memory_begin, m_end, T());
 	}
 
-	Vector(std::initializer_list<value_type> il, const allocator_type& alloc = allocator_type()) {
-		m_begin = m_end = m_memory_end = nullptr;
-		init_allocate_and_resize(il.size());
+	// Fill constructor
+	Vector(size_type a_size, const_reference a_value, const allocator_type& alloc = allocator_type()) : m_allocator(alloc) {
+		init_allocate_and_set_size(a_size);
+		construct(m_memory_begin, m_end, a_value);
+	}
+
+	Vector(std::initializer_list<value_type> il, const allocator_type& alloc = allocator_type()) : m_allocator(alloc) {
+		init_allocate_and_set_size(il.size());
 		for(const_iterator i = begin(), v = il.begin(); i < end(); i++, v++) {
 			construct(i, *v);
 		}
+	}
+
+	// Range constructor.
+	// It conflicts with fill constructor, so we should
+	// check if parameters are actually iterators
+	template <class InputIterator>
+	Vector(InputIterator a_first, InputIterator a_last, const allocator_type& alloc = allocator_type()) : m_allocator(alloc) {
+		toggle<is_iterator<InputIterator>::value> is_range;
+		construct_range_not_fill(is_range, a_first, a_last);
 	}
 
 	Vector& operator=(const Vector& other) {
@@ -54,11 +74,11 @@ public:
 // Iterators
 
 	iterator begin() {
-		return m_begin;
+		return m_memory_begin;
 	}
 
 	const_iterator begin() const {
-		return m_begin;
+		return m_memory_begin;
 	}
 
 	iterator end() {
@@ -94,9 +114,9 @@ public:
 		copy(new_begin, old_begin, old_size);
 		destroy(old_begin, old_begin + old_size);
 		m_allocator.deallocate(old_begin, old_capacity);
-		m_begin = new_begin;
+		m_memory_begin = new_begin;
 		m_end = new_begin + old_size;
-		m_memory_end = m_begin + a_size;
+		m_memory_end = m_memory_begin + a_size;
 	}
 
 	void resize(size_type a_size) {
@@ -162,14 +182,38 @@ public:
 	}
 
 private:
-	pointer m_begin;
-	pointer m_end;
-	pointer m_memory_end;
-	allocator_type m_allocator;
+	template<class I>
+	struct is_iterator {
+		template <class U> static char check(class std::iterator_traits<U>::pointer* x);
+		template <class U> static long check(U* x);
+
+		static const bool value = sizeof(check<I>(nullptr)) == sizeof(char);
+	};
+
+	template<bool B>
+	struct toggle {};
+
+	// Range constructor
+	template<class U>
+	void construct_range_not_fill(toggle<true>, U a_first, U a_last) {
+		init_allocate_and_set_size(1);
+		m_end = m_memory_begin;
+		for(U i = a_first; i != a_last; i++) {
+			push_back(*i);
+		}
+	}
+
+	// Fill constructor
+	template<class U>
+	void construct_range_not_fill(toggle<false>, U a_size, U a_value) {
+		init_allocate_and_set_size(a_size);
+		construct(m_memory_begin, m_end, a_value);
+	}
 
 	pointer allocate(size_type a_size) {
-		pointer new_begin = m_allocator.allocate(a_size);
-		return new_begin;
+		m_memory_begin = m_allocator.allocate(a_size);
+		m_memory_end   = m_memory_begin + a_size;
+		return m_memory_begin;
 	}
 
 	void construct(const_iterator a_position, const T& a_value) {
@@ -201,9 +245,8 @@ private:
 		size_type old_size = size();
 		if (old_size + a_count <= capacity()) {
 			move(a_position + a_count, a_position, end() - a_position);
-			destroy(a_position, a_position + a_count - (a_position + a_count == end() + 1 ? 1 : 0));
-		}
-		else {
+			destroy(a_position, std::min(end(), a_position + a_count));
+		} else {
 			iterator old_begin = begin();
 			iterator old_end = end();
 			size_type old_capacity = capacity();
@@ -218,9 +261,10 @@ private:
 		return a_position;
 	}
 
-	void init_allocate_and_resize(size_type a_size) {
-		m_begin = allocate(2*a_size);
-		m_end = m_begin + a_size;
-		m_memory_end = m_begin + 2*a_size;
+	void init_allocate_and_set_size(size_type a_size) {
+		m_memory_begin = m_end = m_memory_end = nullptr;
+		allocate(2*a_size);
+		m_end = m_memory_begin + a_size;
+		m_memory_end = m_memory_begin + 2*a_size;
 	}
 };
