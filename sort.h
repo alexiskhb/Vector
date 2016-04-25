@@ -21,6 +21,7 @@ namespace custom {
 	template<class iterator>
 	typename std::enable_if<is_random_access_iterator<iterator>::value, void>::type 
 	sort(iterator first, iterator last) {
+		--last;
 		if (first >= last) {
 			return;
 		}
@@ -36,7 +37,7 @@ namespace custom {
 				--j;
 			}
 		} while (i < j);
-		custom::sort(first, j);
-		custom::sort(i, last);
+		custom::sort(first, j + 1);
+		custom::sort(i, last + 1);
 	}
 }
