@@ -23,6 +23,9 @@ public:
 	typedef typename A::const_pointer   const_pointer;
 	typedef pointer       iterator;
 	typedef const_pointer const_iterator;
+	typedef std::reverse_iterator<iterator> reverse_iterator;
+	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+
 
 private:
 	pointer m_memory_begin;
@@ -87,6 +90,22 @@ public:
 
 	const_iterator end() const {
 		return m_end;
+	}
+
+	reverse_iterator rbegin() {
+		return reverse_iterator(end());
+	}
+
+	const_reverse_iterator rbegin() const {
+		return const_reverse_iterator(end());
+	}
+
+	reverse_iterator rend() {
+		return reverse_iterator(begin());
+	}
+
+	const_reverse_iterator rend() const {
+		return const_reverse_iterator(begin());
 	}
 
 // Capacity
@@ -268,3 +287,4 @@ private:
 		m_memory_end = m_memory_begin + 2*a_size;
 	}
 };
+
