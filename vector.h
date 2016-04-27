@@ -4,10 +4,8 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
-#include <cstring>
 #include "allocator.h"
 #include <iostream>
-
 
 
 template<class T, class A = std::allocator<T>>
@@ -26,12 +24,12 @@ public:
 	typedef std::reverse_iterator<iterator> reverse_iterator;
 	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
-
 private:
 	pointer m_memory_begin;
 	pointer m_end;
 	pointer m_memory_end;
 	allocator_type m_allocator;
+	static const size_type allocate_multiplier = 4;
 
 public:
 	Vector() : m_memory_begin(nullptr), m_end(nullptr), m_memory_end(nullptr) {
@@ -66,7 +64,15 @@ public:
 	}
 
 	Vector& operator=(const Vector& other) {
-
+		destroy(begin(), end());
+		if (capacity() < other.size()) {
+			this->allocate(allocate_multiplier*other.size());
+		}
+		m_end = m_memory_begin;
+		for(const_reference v: other) {
+			push_back(v);
+		}
+		return *this;
 	}
 
 	~Vector() {
@@ -130,7 +136,7 @@ public:
 		size_type old_capacity = capacity();
 		pointer old_begin = begin();
 		pointer new_begin = allocate(a_size);
-		copy(new_begin, old_begin, old_size);
+		std::copy(old_begin, old_begin + old_size, new_begin);
 		destroy(old_begin, old_begin + old_size);
 		m_allocator.deallocate(old_begin, old_capacity);
 		m_memory_begin = new_begin;
@@ -139,7 +145,21 @@ public:
 	}
 
 	void resize(size_type a_size) {
-
+		if (a_size <= capacity()) {
+			destroy(begin() + a_size, end());
+			m_end = m_memory_begin + a_size;
+			return;
+		}
+		iterator old_begin = begin();
+		iterator old_end = end();
+		size_type old_size = size();
+		size_type old_capacity = capacity();
+		this->allocate(allocate_multiplier*a_size);
+		m_end = m_memory_begin + a_size;
+		std::copy(old_begin, old_end, m_memory_begin);
+		this->construct(m_memory_begin + old_size, m_end, T());
+		this->destroy(old_begin, old_end);
+		m_allocator.deallocate(old_begin, old_capacity);
 	}
 
 // Element access
@@ -186,13 +206,15 @@ public:
 	}
 
 	// [first, last}
-	iterator erase(const_iterator a_first, const_iterator a_last) {
-		copy(a_first, a_last, end() - a_last);
-		destroy(a_last, end());
+	iterator erase(iterator a_first, iterator a_last) {
+		// should I destroy them?
+		// destroy(a_first, a_last);
+		std::move(a_last, end(), a_first);
+		destroy(end()-(a_last-a_first), end());
 		m_end -= a_last - a_first;
 	}
 
-	iterator erase(const_iterator a_position) {
+	iterator erase(iterator a_position) {
 		erase(a_position, a_position + 1);
 	}
 	
@@ -235,11 +257,14 @@ private:
 		return m_memory_begin;
 	}
 
-	void construct(const_iterator a_position, const T& a_value) {
+	void construct(const_iterator a_position, const_reference a_value) {
 		m_allocator.construct(a_position, a_value);
 	}
 
-	void construct(const_iterator a_first, const_iterator a_last, const T& a_value) {
+	// There is no check if a_last < a_first,
+	// and we know that iterator is random access one
+	// so we use '<' in 'for' condition
+	void construct(const_iterator a_first, const_iterator a_last, const_reference a_value) {
 		for(const_iterator i = a_first; i < a_last; i++) {
 			m_allocator.construct(i, a_value);
 		}
@@ -251,28 +276,20 @@ private:
 		}
 	}
 
-	void copy(pointer a_to, pointer a_from, size_type a_size) {
-		std::memcpy(a_to, a_from, sizeof(value_type)*a_size);
-	}
-
-	void move(pointer a_to, pointer a_from, size_type a_size) {
-		std::memmove(a_to, a_from, sizeof(value_type)*a_size);
-	}
-
 	iterator rshift(iterator a_position, size_type a_count) {
 		size_type index = a_position - begin();
 		size_type old_size = size();
 		if (old_size + a_count <= capacity()) {
-			move(a_position + a_count, a_position, end() - a_position);
+			std::move_backward(a_position, end(), a_position + a_count);
 			destroy(a_position, std::min(end(), a_position + a_count));
 		} else {
 			iterator old_begin = begin();
 			iterator old_end = end();
 			size_type old_capacity = capacity();
-			iterator new_begin = allocate(2*(old_size + a_count));
+			iterator new_begin = allocate(allocate_multiplier*(old_size + a_count));
 			a_position = new_begin + index;
-			copy(new_begin, old_begin, index);
-			copy(a_position, old_begin + index, old_size - index);
+			std::copy(old_begin, old_begin + index, new_begin);
+			std::copy(old_begin + index, old_begin + old_size, a_position);
 			destroy(old_begin, old_end);
 			m_allocator.deallocate(old_begin, old_capacity);
 		}
@@ -282,9 +299,9 @@ private:
 
 	void init_allocate_and_set_size(size_type a_size) {
 		m_memory_begin = m_end = m_memory_end = nullptr;
-		allocate(2*a_size);
+		this->allocate(allocate_multiplier*a_size);
 		m_end = m_memory_begin + a_size;
-		m_memory_end = m_memory_begin + 2*a_size;
+		m_memory_end = m_memory_begin + allocate_multiplier*a_size;
 	}
 };
 
