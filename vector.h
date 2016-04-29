@@ -30,9 +30,11 @@ private:
 	pointer m_end;
 	pointer m_memory_end;
 	allocator_type m_allocator;
-	static const size_type allocate_multiplier = 8;
 
 public:
+	static const size_type allocate_multiplier = 8;
+// Constructors
+
 	Vector() : m_memory_begin(nullptr), m_end(nullptr), m_memory_end(nullptr) {
 		init_allocate_and_set_size(allocate_multiplier);
 		m_end = m_memory_begin;
@@ -160,7 +162,8 @@ public:
 		m_end = m_memory_begin + a_size;
 		std::copy(old_begin, old_end, m_memory_begin);
 		this->construct(m_memory_begin + old_size, m_end, T());
-		this->destroy(old_begin, old_end);
+		// TODO: should I destroy them?
+		// this->destroy(old_begin, old_end);
 		m_allocator.deallocate(old_begin, old_capacity);
 	}
 
@@ -223,15 +226,20 @@ public:
 
 	// [first, last}
 	iterator erase(iterator a_first, iterator a_last) {
-		// should I destroy them?
+		// should I destroy them? no.
 		// destroy(a_first, a_last);
 		std::move(a_last, end(), a_first);
 		destroy(end()-(a_last-a_first), end());
 		m_end -= a_last - a_first;
+		return a_first;
 	}
 
 	iterator erase(iterator a_position) {
-		erase(a_position, a_position + 1);
+		return erase(a_position, a_position + 1);
+	}
+
+	void clear() {
+		erase(begin(), end());
 	}
 	
 	void pop_back() {
@@ -297,7 +305,8 @@ private:
 		if (old_size + a_count <= capacity()) {
 			if (a_position < m_end) {
 				std::move(a_position, end(), a_position + a_count);
-				destroy(a_position, std::min(end(), a_position + a_count));	
+				// TODO: should I destroy them?
+				// destroy(a_position, std::min(end(), a_position + a_count));	
 			}
 		} else {
 			size_type index = a_position - begin();
@@ -312,7 +321,8 @@ private:
 			if (old_size > index) {
 				std::copy(old_begin + index, old_begin + old_size, a_position);
 			}
-			destroy(old_begin, old_end);
+			// TODO: should I destroy them?
+			// destroy(old_begin, old_end);
 			m_allocator.deallocate(old_begin, old_capacity);
 		}
 		m_end = begin() + old_size + a_count;
@@ -321,7 +331,7 @@ private:
 
 	void init_allocate_and_set_size(size_type a_size) {
 		m_memory_begin = m_end = m_memory_end = nullptr;
-		this->allocate(allocate_multiplier*a_size);
+		this->allocate(allocate_multiplier*(a_size > 0 ? a_size : allocate_multiplier));
 		m_end = m_memory_begin + a_size;
 		m_memory_end = m_memory_begin + allocate_multiplier*a_size;
 	}
