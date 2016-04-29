@@ -29,11 +29,12 @@ private:
 	pointer m_end;
 	pointer m_memory_end;
 	allocator_type m_allocator;
-	static const size_type allocate_multiplier = 4;
+	static const size_type allocate_multiplier = 8;
 
 public:
 	Vector() : m_memory_begin(nullptr), m_end(nullptr), m_memory_end(nullptr) {
-		
+		init_allocate_and_set_size(allocate_multiplier);
+		m_end = m_memory_begin;
 	}
 
 	Vector(size_type a_size) {
@@ -59,8 +60,8 @@ public:
 	// check if parameters are actually iterators
 	template <class InputIterator>
 	Vector(InputIterator a_first, InputIterator a_last, const allocator_type& alloc = allocator_type()) : m_allocator(alloc) {
-		toggle<is_iterator<InputIterator>::value> is_range;
-		construct_range_not_fill(is_range, a_first, a_last);
+		toggle<is_iterator<InputIterator>::value> is_range_constructor;
+		construct_range_not_fill(is_range_constructor, a_first, a_last);
 	}
 
 	Vector& operator=(const Vector& other) {
@@ -237,7 +238,7 @@ private:
 	// Range constructor
 	template<class U>
 	void construct_range_not_fill(toggle<true>, U a_first, U a_last) {
-		init_allocate_and_set_size(1);
+		init_allocate_and_set_size(allocate_multiplier);
 		m_end = m_memory_begin;
 		for(U i = a_first; i != a_last; i++) {
 			push_back(*i);
@@ -277,19 +278,25 @@ private:
 	}
 
 	iterator rshift(iterator a_position, size_type a_count) {
-		size_type index = a_position - begin();
 		size_type old_size = size();
 		if (old_size + a_count <= capacity()) {
-			std::move_backward(a_position, end(), a_position + a_count);
-			destroy(a_position, std::min(end(), a_position + a_count));
+			if (a_position < m_end) {
+				std::move(a_position, end(), a_position + a_count);
+				destroy(a_position, std::min(end(), a_position + a_count));	
+			}
 		} else {
+			size_type index = a_position - begin();
 			iterator old_begin = begin();
 			iterator old_end = end();
 			size_type old_capacity = capacity();
-			iterator new_begin = allocate(allocate_multiplier*(old_size + a_count));
+			iterator new_begin = this->allocate(allocate_multiplier*(old_size + a_count));
 			a_position = new_begin + index;
-			std::copy(old_begin, old_begin + index, new_begin);
-			std::copy(old_begin + index, old_begin + old_size, a_position);
+			if (index != 0) {
+				std::copy(old_begin, old_begin + index, new_begin);
+			}
+			if (old_size > index) {
+				std::copy(old_begin + index, old_begin + old_size, a_position);
+			}
 			destroy(old_begin, old_end);
 			m_allocator.deallocate(old_begin, old_capacity);
 		}
