@@ -70,7 +70,10 @@ public:
 	Vector& operator=(const Vector& other) {
 		destroy(begin(), end());
 		if (capacity() < other.size()) {
+			size_type old_capacity = capacity();
+			pointer old_begin = begin();
 			this->allocate(allocate_multiplier*other.size());
+			m_allocator.deallocate(old_begin, old_capacity);
 		}
 		m_end = m_memory_begin;
 		for(const_reference v: other) {
@@ -333,7 +336,7 @@ private:
 		m_memory_begin = m_end = m_memory_end = nullptr;
 		this->allocate(allocate_multiplier*(a_size > 0 ? a_size : allocate_multiplier));
 		m_end = m_memory_begin + a_size;
-		m_memory_end = m_memory_begin + allocate_multiplier*a_size;
+		m_memory_end = m_memory_begin + allocate_multiplier*(a_size > 0 ? a_size : allocate_multiplier);
 	}
 };
 

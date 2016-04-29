@@ -22,6 +22,8 @@ public:
 	int get_value() const {return value;}
 	bool operator==(const Class& b) const {return value == b.get_value();}
 	Class& operator=(const Class& b) {value = b.value; return *this;}
+	Class operator*(const Class& b) {return Class(value * b.value);}
+	Class operator*(int a) {return Class(value * a);}
 	~Class() {--Class::count;}
 };
 
@@ -36,8 +38,8 @@ class TestElementAccess : public VectorTest {};
 class TestModifiers     : public VectorTest {};
 
 typedef Class TType;
-typedef Vector<TType> Result;
-typedef std::vector<TType> Expect;
+typedef Vector<TType, Allocator<TType>> Result;
+typedef std::vector<TType, Allocator<TType>> Expect;
 const int SIZE = 350;
 std::random_device rd;
 
@@ -100,8 +102,8 @@ void random_fill(Result& result) {
 
 
 TEST_F(TestIterators, BEGIN_END) {
-	// Class::count = 0;
-	Result result(SIZE);
+	Class::count = 0;
+	Result result(SIZE, 0);
 	random_fill(result);
 	ASSERT_EQ(result.begin() + SIZE, result.end());
 	ASSERT_EQ(*(result.begin() + SIZE), *result.end());
@@ -110,8 +112,8 @@ TEST_F(TestIterators, BEGIN_END) {
 }
 
 TEST_F(TestIterators, REVERSE_ITERATOR) {
-	// Class::count = 0;
-	Vector<TType> result(SIZE);
+	Class::count = 0;
+	Result result(SIZE, 0);
 	ASSERT_EQ(result.rbegin() + SIZE, result.rend());
 	result.clear();
 	ASSERT_EQ(0, Class::count);
@@ -123,7 +125,7 @@ TEST_F(TestIterators, REVERSE_ITERATOR) {
 
 
 TEST_F(TestBasic, DEFAULT_CONSTRUCTOR) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect;
 	Result result;
 	compare_vectors(expect, result);
@@ -131,7 +133,7 @@ TEST_F(TestBasic, DEFAULT_CONSTRUCTOR) {
 }
 
 TEST_F(TestBasic, SIZE_CONSTRUCTOR_1) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect(0);
 	Result result(0);
 	compare_vectors(expect, result);
@@ -139,7 +141,7 @@ TEST_F(TestBasic, SIZE_CONSTRUCTOR_1) {
 }
 
 TEST_F(TestBasic, SIZE_CONSTRUCTOR_2) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect(10000);
 	Result result(10000);
 	compare_vectors(expect, result);
@@ -149,7 +151,7 @@ TEST_F(TestBasic, SIZE_CONSTRUCTOR_2) {
 }
 
 TEST_F(TestBasic, FILL_CONSTRUCTOR_1) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect(10, 11);
 	Result result(10, 11);
 	compare_vectors(expect, result);
@@ -159,7 +161,7 @@ TEST_F(TestBasic, FILL_CONSTRUCTOR_1) {
 }
 
 TEST_F(TestBasic, FILL_CONSTRUCTOR_2) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect(0, 0);
 	Result result(0, 0);
 	compare_vectors(expect, result);
@@ -169,7 +171,7 @@ TEST_F(TestBasic, FILL_CONSTRUCTOR_2) {
 }
 
 TEST_F(TestBasic, FILL_CONSTRUCTOR_3) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect(1, 1);
 	Result result(1, 1);
 	compare_vectors(expect, result);
@@ -179,7 +181,7 @@ TEST_F(TestBasic, FILL_CONSTRUCTOR_3) {
 }
 
 TEST_F(TestBasic, FILL_CONSTRUCTOR_4) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect(10000, -1);
 	Result result(10000, -1);
 	compare_vectors(expect, result);
@@ -189,7 +191,7 @@ TEST_F(TestBasic, FILL_CONSTRUCTOR_4) {
 }
 
 TEST_F(TestBasic, INITIALIZER_LIST_CONSTRUCTOR_1) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect = {1, 4, 2, 923, 453, 4, 674, 78, 5, 58, 324, 534, 55345, 54};
 	Result result = {1, 4, 2, 923, 453, 4, 674, 78, 5, 58, 324, 534, 55345, 54};
 	compare_vectors(expect, result);
@@ -199,7 +201,7 @@ TEST_F(TestBasic, INITIALIZER_LIST_CONSTRUCTOR_1) {
 }
 
 TEST_F(TestBasic, INITIALIZER_LIST_CONSTRUCTOR_2) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect = {1};
 	Result result = {1};
 	compare_vectors(expect, result);
@@ -209,8 +211,8 @@ TEST_F(TestBasic, INITIALIZER_LIST_CONSTRUCTOR_2) {
 }
 
 TEST_F(TestBasic, RANGE_CONSTRUCTOR_1) {
-	// Class::count = 0;
-	Expect expect(1000);
+	Class::count = 0;
+	Expect expect(1000, 0);
 	random_fill(expect);
 	Result result(expect.begin(), expect.end());
 	compare_vectors(expect, result);
@@ -220,7 +222,7 @@ TEST_F(TestBasic, RANGE_CONSTRUCTOR_1) {
 }
 
 TEST_F(TestBasic, RANGE_CONSTRUCTOR_2) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect;
 	random_fill(expect);
 	Result result(expect.begin(), expect.end());
@@ -231,8 +233,8 @@ TEST_F(TestBasic, RANGE_CONSTRUCTOR_2) {
 }
 
 TEST_F(TestBasic, ASSIGN_1) {
-	// Class::count = 0;
-	Result result_1(1000);
+	Class::count = 0;
+	Result result_1(1000, 0);
 	random_fill(result_1);
 	Result result_2;
 	result_2 = result_1;
@@ -243,7 +245,7 @@ TEST_F(TestBasic, ASSIGN_1) {
 }
 
 TEST_F(TestBasic, ASSIGN_2) {
-	// Class::count = 0;
+	Class::count = 0;
 	Result result_1;
 	random_fill(result_1);
 	Result result_2;
@@ -255,10 +257,23 @@ TEST_F(TestBasic, ASSIGN_2) {
 }
 
 TEST_F(TestBasic, ASSIGN_3) {
-	// Class::count = 0;
-	Result result_1(0);
+	Class::count = 0;
+	Result result_1(0, 0);
 	random_fill(result_1);
-	Result result_2(1000);
+	Result result_2(1000, 0);
+	random_fill(result_2);
+	result_2 = result_1;
+	compare_vectors(result_1, result_2);
+	result_1.clear();
+	result_2.clear();
+	ASSERT_EQ(0, Class::count);
+}
+
+TEST_F(TestBasic, ASSIGN_4) {
+	Class::count = 0;
+	Result result_1(1000, 0);
+	random_fill(result_1);
+	Result result_2(1, 0);
 	random_fill(result_2);
 	result_2 = result_1;
 	compare_vectors(result_1, result_2);
@@ -273,29 +288,38 @@ TEST_F(TestBasic, ASSIGN_3) {
 
 
 TEST_F(TestCapacity, SIZE_1) {
-	// Class::count = 0;
+	Class::count = 0;
 	Result result(0);
 	ASSERT_EQ(0, result.size());
 	result.clear();
+	ASSERT_EQ(0, result.size());
 	ASSERT_EQ(0, Class::count);
 }
 
 TEST_F(TestCapacity, SIZE_2) {
-	// Class::count = 0;
+	Class::count = 0;
 	Result result(10000);
 	ASSERT_EQ(10000, result.size());
 	result.clear();
+	ASSERT_EQ(0, result.size());
 	ASSERT_EQ(0, Class::count);
 }
 
-TEST_F(TestCapacity, EMPTY) {
-	// Class::count = 0;
+TEST_F(TestCapacity, EMPTY_1) {
+	Class::count = 0;
 	Result result;
 	ASSERT_TRUE(result.empty());
 }
 
+TEST_F(TestCapacity, EMPTY_2) {
+	Class::count = 0;
+	Result result{1, 2, 3, 4, 5};
+	result.clear();
+	ASSERT_TRUE(result.empty());
+}
+
 TEST_F(TestCapacity, RESERVE) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect;
 	Result result;
 	expect.reserve(2000);
@@ -307,7 +331,7 @@ TEST_F(TestCapacity, RESERVE) {
 }
 
 TEST_F(TestCapacity, RESIZE) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect;
 	Result result;
 	expect.resize(100);
@@ -330,8 +354,8 @@ TEST_F(TestCapacity, RESIZE) {
 
 
 TEST_F(TestElementAccess, FRONT_1) {
-	// Class::count = 0;
-	Expect expect(1000);
+	Class::count = 0;
+	Expect expect(1000, 0);
 	random_fill(expect);
 	Result result(expect.begin(), expect.end());
 	ASSERT_EQ(expect.front(), result.front());
@@ -341,7 +365,7 @@ TEST_F(TestElementAccess, FRONT_1) {
 }
 
 TEST_F(TestElementAccess, FRONT_2) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect(1);
 	random_fill(expect);
 	Result result(expect.begin(), expect.end());
@@ -351,9 +375,23 @@ TEST_F(TestElementAccess, FRONT_2) {
 	ASSERT_EQ(0, Class::count);
 }
 
+TEST_F(TestElementAccess, FRONT_3) {
+	Class::count = 0;
+	Expect expect(1);
+	random_fill(expect);
+	Result result(expect.begin(), expect.end());
+	auto value = expect.front();
+	expect.front() = value*2;
+	result.front() = value*2;
+	compare_vectors(expect, result);
+	expect.clear();
+	result.clear();
+	ASSERT_EQ(1, Class::count);
+}
+
 TEST_F(TestElementAccess, BACK_1) {
-	// Class::count = 0;
-	Expect expect(1000);
+	Class::count = 0;
+	Expect expect(1000, 0);
 	random_fill(expect);
 	Result result(expect.begin(), expect.end());
 	ASSERT_EQ(expect.back(), result.back());
@@ -363,7 +401,7 @@ TEST_F(TestElementAccess, BACK_1) {
 }
 
 TEST_F(TestElementAccess, BACK_2) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect(1);
 	random_fill(expect);
 	Result result(expect.begin(), expect.end());
@@ -373,9 +411,23 @@ TEST_F(TestElementAccess, BACK_2) {
 	ASSERT_EQ(0, Class::count);
 }
 
-TEST_F(TestElementAccess, AT) {
-	// Class::count = 0;
-	Expect expect(1000);
+TEST_F(TestElementAccess, BACK_3) {
+	Class::count = 0;
+	Expect expect(1);
+	random_fill(expect);
+	Result result(expect.begin(), expect.end());
+	auto value = expect.back();
+	expect.back() = value*2;
+	result.back() = value*2;
+	compare_vectors(expect, result);
+	expect.clear();
+	result.clear();
+	ASSERT_EQ(1, Class::count);
+}
+
+TEST_F(TestElementAccess, AT_1) {
+	Class::count = 0;
+	Expect expect(1000, 0);
 	random_fill(expect);
 	Result result(expect.begin(), expect.end());
 	compare_vectors(expect, result);
@@ -384,9 +436,24 @@ TEST_F(TestElementAccess, AT) {
 	ASSERT_EQ(0, Class::count);
 }
 
-TEST_F(TestElementAccess, BRACES) {
-	// Class::count = 0;
-	Expect expect(1000);
+TEST_F(TestElementAccess, AT_2) {
+	Class::count = 0;
+	Expect expect(1000, 0);
+	random_fill(expect);
+	Result result(expect.begin(), expect.end());
+	int index = rd()%expect.size();
+	auto value = expect.at(index);
+	expect.at(index) = value*2;
+	result.at(index) = value*2;
+	compare_vectors(expect, result);
+	expect.clear();
+	result.clear();
+	ASSERT_EQ(1, Class::count);
+}
+
+TEST_F(TestElementAccess, BRACES_1) {
+	Class::count = 0;
+	Expect expect(1000, 0);
 	random_fill(expect);
 	Result result(expect.begin(), expect.end());
 	compare_vectors_br(expect, result);
@@ -395,13 +462,28 @@ TEST_F(TestElementAccess, BRACES) {
 	ASSERT_EQ(0, Class::count);
 }
 
+TEST_F(TestElementAccess, BRACES_2) {
+	Class::count = 0;
+	Expect expect(1000, 0);
+	random_fill(expect);
+	Result result(expect.begin(), expect.end());
+	int index = rd()%expect.size();
+	auto value = expect.at(index);
+	expect[index] = value*2;
+	result[index] = value*2;
+	compare_vectors(expect, result);
+	expect.clear();
+	result.clear();
+	ASSERT_EQ(1, Class::count);
+}
+
 
 
 
 
 
 TEST_F(TestModifiers, INSERT) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect;
 	Result result;
 	for(int i = 0; i < 1000; i++) {
@@ -418,7 +500,7 @@ TEST_F(TestModifiers, INSERT) {
 }
 
 TEST_F(TestModifiers, CLEAR) {
-	// Class::count = 0;
+	Class::count = 0;
 	Result result(1000);
 	random_fill(result);
 	result.clear();
@@ -427,7 +509,7 @@ TEST_F(TestModifiers, CLEAR) {
 }
 
 TEST_F(TestModifiers, EMPLACE) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect;
 	Result result;
 	for(int i = 0; i < 1000; i++) {
@@ -444,7 +526,7 @@ TEST_F(TestModifiers, EMPLACE) {
 }
 
 TEST_F(TestModifiers, PUSH_BACK) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect;
 	Result result;
 	for(int i = 0; i < 1000; i++) {
@@ -459,7 +541,7 @@ TEST_F(TestModifiers, PUSH_BACK) {
 }
 
 TEST_F(TestModifiers, ERASE) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect;
 	Result result;
 	for(int i = 0; i < 1000; i++) {
@@ -481,7 +563,7 @@ TEST_F(TestModifiers, ERASE) {
 }
 
 TEST_F(TestModifiers, POP_BACK) {
-	// Class::count = 0;
+	Class::count = 0;
 	Expect expect;
 	Result result;
 	for(int i = 0; i < 1000; i++) {
