@@ -1,10 +1,12 @@
 #include <vector>
 #include <gtest/gtest.h>
-#include <vector>
-#include "vector.h"
-#include "allocator.h"
 #include <memory>
 #include <random>
+#include <chrono>
+#include <algorithm>
+#include "vector.h"
+#include "allocator.h"
+#include "sort.h"
 
 class Class {
 public:
@@ -24,6 +26,8 @@ public:
 	Class& operator=(const Class& b) {value = b.value; return *this;}
 	Class operator*(const Class& b) {return Class(value * b.value);}
 	Class operator*(int a) {return Class(value * a);}
+	bool operator>(const Class& b) {return value > b.get_value();}
+	bool operator<(const Class& b) {return value < b.get_value();}
 	~Class() {--Class::count;}
 };
 
@@ -37,7 +41,7 @@ class TestCapacity      : public VectorTest {};
 class TestElementAccess : public VectorTest {};
 class TestModifiers     : public VectorTest {};
 
-typedef Class TType;
+typedef int TType;
 typedef Vector<TType, Allocator<TType>> Result;
 typedef std::vector<TType, Allocator<TType>> Expect;
 const int SIZE = 350;
@@ -487,7 +491,7 @@ TEST_F(TestModifiers, INSERT) {
 	Expect expect;
 	Result result;
 	for(int i = 0; i < 1000; i++) {
-		Class value(rd());
+		TType value(rd());
 		size_t index = i == 0 ? 0 : rd()%expect.size();
 		auto ie = expect.insert(expect.begin() + index, value);
 		auto ir = result.insert(result.begin() + index, value);
@@ -585,9 +589,92 @@ TEST_F(TestModifiers, POP_BACK) {
 
 
 
-
+using std::cout;
+using std::endl;
 
 int main(int argc, char** argv) {
-	::testing::InitGoogleTest(&argc, argv);
-	return RUN_ALL_TESTS();
+	// ::testing::InitGoogleTest(&argc, argv);
+	// return RUN_ALL_TESTS();
+	auto size_list = {100, 1000, 10000, 100000, 1000000, 3000000};
+	auto start = std::chrono::system_clock::now();
+	auto end = std::chrono::system_clock::now();
+	for(auto size : size_list) {
+		Expect sample(size);
+		random_fill(sample);
+		Expect expect(sample.begin(), sample.end());
+		Result result(sample.begin(), sample.end());
+
+		start = std::chrono::system_clock::now();
+		custom::sort(expect.begin(), expect.end());
+		end = std::chrono::system_clock::now();
+		cout << 
+			(end - start).count() << " (" <<
+			std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() 
+			<< "ms.) custom::sort; std::vector; random fill. N = " << size << "\n";
+
+		start = std::chrono::system_clock::now();
+		custom::sort(expect.rbegin(), expect.rend());
+		end = std::chrono::system_clock::now();
+		cout << 
+			(end - start).count() << " (" <<
+			std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() 
+			<< "ms.) custom::sort; std::vector; reverse order. N = " << size << "\n";
+
+		start = std::chrono::system_clock::now();		
+		custom::sort(result.begin(), result.end());
+		end = std::chrono::system_clock::now();
+		cout << 
+			(end - start).count() << " (" <<
+			std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() 
+			<< "ms.) custom::sort; Vector; same fill. N = " << size << "\n";
+
+		start = std::chrono::system_clock::now();		
+		custom::sort(result.rbegin(), result.rend());
+		end = std::chrono::system_clock::now();
+		cout << 
+			(end - start).count() << " (" <<
+			std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() 
+			<< "ms.) custom::sort; Vector; reverse. N = " << size << "\n";
+
+		cout << endl;
+
+		expect = Expect(sample.begin(), sample.end());
+		result = Result(sample.begin(), sample.end());
+
+		start = std::chrono::system_clock::now();
+		std::sort(expect.begin(), expect.end());
+		end = std::chrono::system_clock::now();
+		cout << 
+			(end - start).count() << " (" <<
+			std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() 
+			<< "ms.) std::sort; std::vector; random fill. N = " << size << "\n";
+
+		start = std::chrono::system_clock::now();
+		std::sort(expect.rbegin(), expect.rend());
+		end = std::chrono::system_clock::now();
+		cout << 
+			(end - start).count() << " (" <<
+			std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() 
+			<< "ms.) std::sort; std::vector; reverse order. N = " << size << "\n";
+
+		start = std::chrono::system_clock::now();		
+		std::sort(result.begin(), result.end());
+		end = std::chrono::system_clock::now();
+		cout << 
+			(end - start).count() << " (" <<
+			std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() 
+			<< "ms.) std::sort; Vector; same fill. N = " << size << "\n";
+
+		start = std::chrono::system_clock::now();		
+		std::sort(result.rbegin(), result.rend());
+		end = std::chrono::system_clock::now();
+		cout << 
+			(end - start).count() << " (" <<
+			std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() 
+			<< "ms.) std::sort; Vector; reverse order. N = " << size << "\n";
+
+		cout << endl;
+	}
+
+	return 0;
 }
