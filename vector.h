@@ -4,8 +4,9 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
-#include "allocator.h"
 #include <iostream>
+#include <exception>
+#include "allocator.h"
 
 
 template<class T, class A = std::allocator<T>>
@@ -180,6 +181,20 @@ public:
 	const_reference back() const {
 		return *(end() - 1);
 	}
+
+	reference at(size_type a_index) {
+		if (a_index >= size()) {
+			throw std::out_of_range("custom vector out of range");
+		}
+		return *(begin() + a_index);
+	}
+
+	const_reference at(size_type a_index) const{
+		if (a_index >= size()) {
+			throw std::out_of_range("custom vector out of range");
+		}
+		return *(begin() + a_index);
+	}	
 
 	reference operator[](size_type a_index) {
 		return *(begin() + a_index);
